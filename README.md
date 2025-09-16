@@ -1,9 +1,9 @@
-# TRIAGE
-## Tree Reconnaissance & Investigation for Affordable Grouping & Examination
+# CHEAPSKATE
+## Comprehensive Hierarchical Exfiltration Analysis & Pre-Sorting Kit for Affordable Triage Examination
 
 🕵️ **Save $100K-millions on forensic analysis fees by pre-sorting your data breach evidence**
 
-TRIAGE is a PowerShell-based tool that creates interactive HTML directory trees from MFT (Master File Table) files, allowing security teams to quickly identify and categorize exfiltrated data before sending it to expensive forensic vendors.
+CHEAPSKATE is a PowerShell-based tool that creates interactive HTML directory trees from MFT (Master File Table) files, allowing security teams to quickly identify and categorize exfiltrated data before sending it to expensive forensic vendors.
 
 ---
 
@@ -17,7 +17,7 @@ TRIAGE is a PowerShell-based tool that creates interactive HTML directory trees 
 
 **The Solution:**
 - Extract MFT from compromised systems
-- Use TRIAGE to create interactive directory tree
+- Use CHEAPSKATE to create interactive directory tree
 - Security team pre-sorts directories into "has sensitive data" vs "irrelevant"
 - Send only marked directories to forensic vendor
 - **Result: 70-90% reduction in forensic analysis costs**
@@ -61,8 +61,8 @@ TRIAGE is a PowerShell-based tool that creates interactive HTML directory trees 
 ### Installation
 ```powershell
 # Clone the repository
-git clone https://github.com/yourusername/TRIAGE.git
-cd TRIAGE
+git clone https://github.com/yourusername/CHEAPSKATE.git
+cd CHEAPSKATE
 
 # Run the tool
 .\Generate-MemoryOptimizedTree.ps1 -MFTPath "C:\Evidence\$MFT" -OutputHtmlFile "C:\Analysis\breach_analysis.html"
@@ -166,7 +166,7 @@ cd TRIAGE
 ## 📊 **Return on Investment**
 
 ### Typical Data Breach Costs
-| Item | Without TRIAGE | With TRIAGE | Savings |
+| Item | Without CHEAPSKATE | With CHEAPSKATE | Savings |
 |------|----------------|-------------|---------|
 | Forensic Analysis | $150,000 | $25,000 | $125,000 |
 | Time to Report | 3-4 weeks | 1-2 weeks | 2-3 weeks |
@@ -192,8 +192,8 @@ We welcome contributions! Areas for enhancement:
 
 ### Development Setup
 ```bash
-git clone https://github.com/yourusername/TRIAGE.git
-cd TRIAGE
+git clone https://github.com/yourusername/CHEAPSKATE.git
+cd CHEAPSKATE
 # Make your changes
 # Test with various MFT sizes
 # Submit pull request
@@ -228,6 +228,6 @@ Perfect for:
 
 ---
 
-**⭐ If TRIAGE saved your organization money, please star the repo!**
+**⭐ If CHEAPSKATE saved your organization money, please star the repo!**
 
 **Built by security professionals, for security professionals fighting the good fight against overpriced forensic vendors.** 🥷
