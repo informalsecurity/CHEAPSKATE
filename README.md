@@ -13,7 +13,7 @@ CHEAPSKATE is a PowerShell-based tool that creates interactive HTML directory tr
 - Data exfiltration incident occurs
 - Forensic vendors charge $500-2000/hour to analyze directory structures
 - You need to report which records were stolen (GDPR, CCPA, etc.)
-- Sending raw MFT files = massive forensic bills
+- Sending entire drives = massive forensic bills
 
 **The Solution:**
 - Extract MFT from compromised systems
