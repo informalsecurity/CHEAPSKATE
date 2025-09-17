@@ -76,19 +76,19 @@ git clone https://github.com/yourusername/CHEAPSKATE.git
 cd CHEAPSKATE
 
 # Run the tool
-.\Generate-MemoryOptimizedTree.ps1 -MFTPath "C:\Evidence\$MFT" -OutputHtmlFile "C:\Analysis\breach_analysis.html"
+.\cheapskate.ps1 -MFTPath "C:\Evidence\$MFT" -OutputHtmlFile "C:\Analysis\breach_analysis.html"
 ```
 
 ### Basic Usage CHEAPSKATE
 ```powershell
 # Analyze MFT with default settings
-.\Generate-MemoryOptimizedTree.ps1 -MFTPath ".\evidence\$MFT" -OutputHtmlFile ".\analysis.html"
+.\cheapskate.ps1 -MFTPath ".\evidence\$MFT" -OutputHtmlFile ".\analysis.html"
 
 # Custom depth limit for faster processing
-.\Generate-MemoryOptimizedTree.ps1 -MFTPath ".\evidence\$MFT" -OutputHtmlFile ".\analysis.html" -MaxDepth 8
+.\cheapskate.ps1 -MFTPath ".\evidence\$MFT" -OutputHtmlFile ".\analysis.html" -MaxDepth 8
 
 # Smaller batch size for very large MFTs
-.\Generate-MemoryOptimizedTree.ps1 -MFTPath ".\evidence\$MFT" -OutputHtmlFile ".\analysis.html" -BatchSize 5000
+.\cheapskate.ps1 -MFTPath ".\evidence\$MFT" -OutputHtmlFile ".\analysis.html" -BatchSize 5000
 ```
 
 ## 🛠️ **File Extractor Usage Examples**
