@@ -25,12 +25,13 @@ CHEAPSKATE is a PowerShell-based tool that creates interactive HTML directory tr
 ---
 
 ## ✨ **Key Features**
-
+### **CHEAPSKATE.ps1**
 ### 🌳 **Interactive Directory Tree**
 - Collapsible directory structure with size information
 - Click arrows to expand/collapse branches
 - Real-time search across all directories
 - Professional dark theme optimized for long analysis sessions
+- Blacklist of common file types that would not need to be reviewed (EXE, BIN, CAB, etc.)
 
 ### 📊 **Smart Data Tracking**
 - **"Has Data" checkboxes** - mark directories containing sensitive information
@@ -50,6 +51,16 @@ CHEAPSKATE is a PowerShell-based tool that creates interactive HTML directory tr
 - **Batch processing** with progress reporting
 - **O(n) algorithms** - linear scaling for massive datasets
 
+### **CHEAPSKATE-FileExtractor.ps1**
+The File Extractor reads your directory selections and creates efficient scripts to copy only the files that matter, applying the same intelligent filtering to exclude system files, executables, and media files.
+
+#### **Key Features:**
+- **Multiple output formats** - RoboCopy, PowerShell, Batch, FileList, JSON
+- **Smart file filtering** - Same 40+ extension blacklist as main tool
+- **Efficient extraction** - Groups files by directory for optimal copying
+- **Size calculations** - Shows total data volume before extraction
+- **Vendor-ready output** - Professional scripts for forensic handoff
+
 ---
 
 ## 🚀 **Quick Start**
@@ -68,7 +79,7 @@ cd CHEAPSKATE
 .\Generate-MemoryOptimizedTree.ps1 -MFTPath "C:\Evidence\$MFT" -OutputHtmlFile "C:\Analysis\breach_analysis.html"
 ```
 
-### Basic Usage
+### Basic Usage CHEAPSKATE
 ```powershell
 # Analyze MFT with default settings
 .\Generate-MemoryOptimizedTree.ps1 -MFTPath ".\evidence\$MFT" -OutputHtmlFile ".\analysis.html"
@@ -79,6 +90,67 @@ cd CHEAPSKATE
 # Smaller batch size for very large MFTs
 .\Generate-MemoryOptimizedTree.ps1 -MFTPath ".\evidence\$MFT" -OutputHtmlFile ".\analysis.html" -BatchSize 5000
 ```
+
+## 🛠️ **File Extractor Usage Examples**
+
+### **RoboCopy Script (Recommended)**
+```powershell
+.\CHEAPSKATE-FileExtractor.ps1 -MFTPath ".\evidence\$MFT" -CheapskateCSV ".\selected_dirs.csv" -SourceDrive "E:" -OutputDirectory "C:\ExtractForVendor" -OutputFormat RoboCopy
+```
+
+**Generates:** Multi-threaded batch script with optimal file copying
+```batch
+robocopy "E:\Users\Documents" "C:\ExtractForVendor\Users\Documents" "*.docx" "*.xlsx" "*.pdf" /S /E /COPYALL /R:3 /W:1 /MT:8
+```
+
+### **PowerShell Script (Detailed Progress)**
+```powershell
+.\CHEAPSKATE-FileExtractor.ps1 -MFTPath ".\evidence\$MFT" -CheapskateCSV ".\selected_dirs.csv" -SourceDrive "E:" -OutputDirectory "C:\ExtractForVendor" -OutputFormat PowerShell
+```
+
+**Generates:** PowerShell script with progress tracking and error handling
+```powershell
+Write-Host "✓ Users\Documents\Financial_Records\2024_Budget.xlsx" -ForegroundColor Gray
+Write-Host "✓ Users\Documents\Contracts\NDA_Template.docx" -ForegroundColor Gray
+```
+
+### **File List (Third-Party Tools)**
+```powershell
+.\CHEAPSKATE-FileExtractor.ps1 -MFTPath ".\evidence\$MFT" -CheapskateCSV ".\selected_dirs.csv" -SourceDrive "E:" -OutputFormat FileList
+```
+
+**Generates:** Simple text file with full paths for use with other tools
+```
+E:\Users\Documents\Financial_Records\2024_Budget.xlsx
+E:\Users\Documents\Contracts\NDA_Template.docx
+E:\Users\Downloads\Confidential\Internal_Memo.pdf
+```
+
+### **JSON Manifest (Automation)**
+```powershell
+.\CHEAPSKATE-FileExtractor.ps1 -MFTPath ".\evidence\$MFT" -CheapskateCSV ".\selected_dirs.csv" -SourceDrive "E:" -OutputDirectory "C:\ExtractForVendor" -OutputFormat JSON
+```
+
+**Generates:** Structured data for API integration and automation
+```json
+{
+  "metadata": {
+    "generated": "2025-09-16T14:30:25Z",
+    "source_drive": "E:",
+    "total_files": 1247,
+    "tool": "CHEAPSKATE File Extractor"
+  },
+  "files": [
+    {
+      "source_path": "E:\\Users\\Documents\\Budget.xlsx",
+      "dest_path": "C:\\ExtractForVendor\\Users\\Documents\\Budget.xlsx",
+      "file_size": 2048576
+    }
+  ]
+}
+```
+
+---
 
 ---
 
@@ -101,10 +173,29 @@ cd CHEAPSKATE
 2. **Team Collaboration**: Export analysis data as JSON to share with team
 3. **Forensic Vendor**: Send only marked directories for detailed analysis
 
-### Step 4: Cost Savings
-- **Before**: Send entire Drive → $50K-200K forensic bill
+### **Step 4: File Extraction Planning**
+```powershell
+# Generate extraction scripts from your selections
+.\CHEAPSKATE-FileExtractor.ps1 -MFTPath "evidence\$MFT" -CheapskateCSV "selected_directories.csv" -SourceDrive "D:" -OutputDirectory "C:\ForensicExtract" -OutputFormat RoboCopy
+```
+
+**Parameters:**
+- **`-MFTPath`** - Original MFT file (for detailed file analysis)
+- **`-CheapskateCSV`** - CSV exported from Step 1
+- **`-SourceDrive`** - Drive containing original files (e.g., mounted evidence image)
+- **`-OutputDirectory`** - Where to copy extracted files
+- **`-OutputFormat`** - Script type to generate
+
+### **Step 5: Execute Extraction**
+```batch
+# Run the generated extraction script
+.\CHEAPSKATE_Extract_RoboCopy_20250916_143052.bat
+```
+### Step 6: Cost Savings
+- **Before**: Send entire Drive → $800K-2M forensic bill
 - **After**: Send pre-sorted evidence → $5K-20K forensic bill (no need to pay them to scan your ISO's and CAB files)
 - **Savings**: 70-90% reduction in vendor costs
+- Send only the extracted directory to forensic vendor with professional documentation showing exactly which directories were analyzed and why.
 
 ---
 
