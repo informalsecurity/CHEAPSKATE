@@ -13,7 +13,31 @@ param(
     [string]$ToolsPath = ".\ZimmermanTools",
     
     [Parameter(Mandatory=$false)]
-    [int]$BatchSize = 10000
+    [int]$BatchSize = 10000,
+    
+    [Parameter(Mandatory=$false)]
+    [string[]]$FileExtensionBlacklist = @(
+        # System/Executable Files
+        '.exe', '.dll', '.sys', '.bin', '.msi', '.cab', '.msp', '.msu', '.scr', '.com', '.bat', '.cmd', '.iso', '.app', '.dmg', '.so', '.svg', '.css', '.drv', 
+        
+        # Configuration/System Files  
+        '.ini', '.conf', '.cfg', '.config', '.log', '.evt', '.evtx', '.etl', '.dmp', '.mdmp',
+        
+        # Encrypted/Compressed (can't analyze easily)
+        '.7z', '.rar', '.gz', '.tar', '.bz2', '.xz', '.gpg', '.pgp', '.p12', '.pfx', '.cer', '.crt', '.key',
+        
+        # Media Files (unlikely to contain structured data)
+        '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.ico', '.mp3', '.wav', '.mp4', '.avi', '.mov', '.wmv', '.flv', '.swf', '.flac', '.aac', '.fla', 
+        
+        # Temporary/Cache Files
+        '.tmp', '.temp', '.cache', '.bak', '.old', '.swp', '.swo', '.thumbs.db', '.ds_store', '.css', '.js', '.woff', '.woff2', '.ttf', '.otf', '.idx', '.chm', '.hlp', 
+        
+        # Development/Build Files
+        '.obj', '.pdb', '.lib', '.exp', '.ilk', '.pch', '.idb', '.ncb', '.sbr', '.bsc',
+        
+        # Windows Specific
+        '.lnk', '.url', '.manifest', '.mui', '.msp', '.cat', '.inf'
+    )
 )
 Add-Type -AssemblyName System.Web
 function Download-MFTECmd {
@@ -90,16 +114,22 @@ function Process-MFT-Streaming {
     param(
         [string]$CsvPath,
         [int]$MaxDepth,
-        [int]$BatchSize
+        [int]$BatchSize,
+        [string[]]$FileExtensionBlacklist
     )
     
-    Write-Host "Processing MFT data with memory optimization..." -ForegroundColor Yellow
+    Write-Host "Processing MFT data with memory optimization and file extension filtering..." -ForegroundColor Yellow
+    Write-Host "Blacklisted extensions: $($FileExtensionBlacklist.Count) types" -ForegroundColor Cyan
     
     # Use efficient data structures
     $directoryData = [System.Collections.Generic.Dictionary[string,object]]::new()
     $pathSizes = [System.Collections.Generic.Dictionary[string,long]]::new()
     $pathFileCounts = [System.Collections.Generic.Dictionary[string,int]]::new()
     $validPaths = [System.Collections.Generic.HashSet[string]]::new()
+    
+    # Counters for excluded files
+    $excludedFileCount = 0
+    $totalFileCount = 0
     
     # Stream process the CSV file
     $reader = [System.IO.StreamReader]::new($CsvPath)
@@ -125,10 +155,10 @@ function Process-MFT-Streaming {
             $batch.Add($line)
             
             if ($batch.Count -ge $BatchSize) {
-                Process-Batch -Batch $batch -HeaderFields $headerFields -DirectoryData $directoryData -PathSizes $pathSizes -PathFileCounts $pathFileCounts -ValidPaths $validPaths -MaxDepth $MaxDepth -IsDirectoryIndex $isDirectoryIndex -InUseIndex $inUseIndex -FileNameIndex $fileNameIndex -ParentPathIndex $parentPathIndex -FileSizeIndex $fileSizeIndex -CreatedIndex $createdIndex -ModifiedIndex $modifiedIndex -EntryNumberIndex $entryNumberIndex
+                Process-Batch -Batch $batch -HeaderFields $headerFields -DirectoryData $directoryData -PathSizes $pathSizes -PathFileCounts $pathFileCounts -ValidPaths $validPaths -MaxDepth $MaxDepth -IsDirectoryIndex $isDirectoryIndex -InUseIndex $inUseIndex -FileNameIndex $fileNameIndex -ParentPathIndex $parentPathIndex -FileSizeIndex $fileSizeIndex -CreatedIndex $createdIndex -ModifiedIndex $modifiedIndex -EntryNumberIndex $entryNumberIndex -FileExtensionBlacklist $FileExtensionBlacklist -ExcludedFileCount ([ref]$excludedFileCount) -TotalFileCount ([ref]$totalFileCount)
                 
                 $recordCount += $batch.Count
-                Write-Host "Processed $recordCount records..." -ForegroundColor Gray
+                Write-Host "Processed $recordCount records... (Excluded: $excludedFileCount/$totalFileCount files)" -ForegroundColor Gray
                 
                 $batch.Clear()
                 [System.GC]::Collect()
@@ -138,7 +168,7 @@ function Process-MFT-Streaming {
         
         # Process remaining batch
         if ($batch.Count -gt 0) {
-            Process-Batch -Batch $batch -HeaderFields $headerFields -DirectoryData $directoryData -PathSizes $pathSizes -PathFileCounts $pathFileCounts -ValidPaths $validPaths -MaxDepth $MaxDepth -IsDirectoryIndex $isDirectoryIndex -InUseIndex $inUseIndex -FileNameIndex $fileNameIndex -ParentPathIndex $parentPathIndex -FileSizeIndex $fileSizeIndex -CreatedIndex $createdIndex -ModifiedIndex $modifiedIndex -EntryNumberIndex $entryNumberIndex
+            Process-Batch -Batch $batch -HeaderFields $headerFields -DirectoryData $directoryData -PathSizes $pathSizes -PathFileCounts $pathFileCounts -ValidPaths $validPaths -MaxDepth $MaxDepth -IsDirectoryIndex $isDirectoryIndex -InUseIndex $inUseIndex -FileNameIndex $fileNameIndex -ParentPathIndex $parentPathIndex -FileSizeIndex $fileSizeIndex -CreatedIndex $createdIndex -ModifiedIndex $modifiedIndex -EntryNumberIndex $entryNumberIndex -FileExtensionBlacklist $FileExtensionBlacklist -ExcludedFileCount ([ref]$excludedFileCount) -TotalFileCount ([ref]$totalFileCount)
             $recordCount += $batch.Count
         }
     }
@@ -149,12 +179,17 @@ function Process-MFT-Streaming {
     
     Write-Host "Processed $recordCount total records" -ForegroundColor Green
     Write-Host "Found $($directoryData.Count) directories" -ForegroundColor Green
+    Write-Host "Excluded $excludedFileCount of $totalFileCount files ($([Math]::Round(($excludedFileCount/$totalFileCount)*100, 1))%) due to blacklist" -ForegroundColor Yellow
     
     # Calculate directory totals efficiently
     Write-Host "Calculating directory totals..." -ForegroundColor Yellow
     Calculate-DirectoryTotals -DirectoryData $directoryData -PathSizes $pathSizes -PathFileCounts $pathFileCounts
     
-    return $directoryData
+    return @{
+        DirectoryData = $directoryData
+        ExcludedFileCount = $excludedFileCount
+        TotalFileCount = $totalFileCount
+    }
 }
 
 function Process-Batch {
@@ -173,7 +208,10 @@ function Process-Batch {
         [int]$FileSizeIndex,
         [int]$CreatedIndex,
         [int]$ModifiedIndex,
-        [int]$EntryNumberIndex
+        [int]$EntryNumberIndex,
+        [string[]]$FileExtensionBlacklist,
+        [ref]$ExcludedFileCount,
+        [ref]$TotalFileCount
     )
     
     foreach ($line in $Batch) {
@@ -248,7 +286,23 @@ function Process-Batch {
                 $PathFileCounts[$fullPath] = 0
             }
         } else {
-            # Handle file - add to parent directory size
+            # Handle file - check against blacklist first
+            $TotalFileCount.Value++
+            
+            # Check if file extension is blacklisted
+            try {
+                $fileExtension = [System.IO.Path]::GetExtension($fileName).ToLower()
+                $isBlacklisted = $FileExtensionBlacklist -contains $fileExtension
+            } catch {
+                $isBlacklisted = $false
+            }
+            
+            if ($isBlacklisted) {
+                $ExcludedFileCount.Value++
+                continue  # Skip blacklisted files
+            }
+            
+            # Add to parent directory size (only if not blacklisted)
             $parentFullPath = if ($parentPath -and $parentPath.Trim() -ne '' -and $parentPath -ne '.') {
                 $parentPath
             } else {
@@ -344,7 +398,9 @@ function Generate-OptimizedHtml {
     param(
         [System.Collections.Generic.Dictionary[string,object]]$DirectoryData,
         [string]$MFTPath,
-        [int]$MaxDepth
+        [int]$MaxDepth,
+        [int]$ExcludedFileCount,
+        [int]$TotalFileCount
     )
     
     $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
@@ -418,6 +474,9 @@ function Generate-OptimizedHtml {
         }
     }
     
+    $includedFileCount = $TotalFileCount - $ExcludedFileCount
+    $exclusionPercentage = if ($TotalFileCount -gt 0) { [Math]::Round(($ExcludedFileCount / $TotalFileCount) * 100, 1) } else { 0 }
+    
     # Build directory data JSON efficiently (fast)
     Write-Host "Building JSON data for client..." -ForegroundColor Yellow
     $jsonBuilder = [System.Text.StringBuilder]::new()
@@ -490,9 +549,10 @@ function Generate-OptimizedHtml {
         <p><strong>Source:</strong> $MFTPath</p>
         <p><strong>Analysis ID:</strong> $mftKey <small>(unique per MFT file)</small></p>
         <p><strong>Generated:</strong> $(Get-Date)</p>
-        <p><strong>Statistics:</strong> $totalDirs directories | $totalFiles files | $(Format-FileSize -Size $totalSize) total</p>
+        <p><strong>Statistics:</strong> $totalDirs directories | $totalFiles relevant files | $(Format-FileSize -Size $totalSize) total size</p>
         <p class="memory-info">⚡ Optimized for large MFT files - streaming processing used</p>
         <p class="generation-stats">📊 HTML generated in $([Math]::Round($stopwatch.Elapsed.TotalSeconds, 1)) seconds ($([Math]::Round($processedNodes / $stopwatch.Elapsed.TotalSeconds)) nodes/sec)</p>
+        <p class="generation-stats">🚫 Filtered out $ExcludedFileCount system files ($exclusionPercentage% of $TotalFileCount total files) - sizes reflect data files only</p>
     </div>
     
     <div class="totals-display" id="totalsDisplay">
@@ -1036,10 +1096,11 @@ try {
     }
     
     # Process with streaming and memory optimization
-    $directoryData = Process-MFT-Streaming -CsvPath $csvFilePath -MaxDepth $MaxDepth -BatchSize $BatchSize
+    $processResult = Process-MFT-Streaming -CsvPath $csvFilePath -MaxDepth $MaxDepth -BatchSize $BatchSize -FileExtensionBlacklist $FileExtensionBlacklist
+    $directoryData = $processResult.DirectoryData
     
     # Generate optimized HTML
-    $htmlContent = Generate-OptimizedHtml -DirectoryData $directoryData -MFTPath $MFTPath -MaxDepth $MaxDepth
+    $htmlContent = Generate-OptimizedHtml -DirectoryData $directoryData -MFTPath $MFTPath -MaxDepth $MaxDepth -ExcludedFileCount $processResult.ExcludedFileCount -TotalFileCount $processResult.TotalFileCount
     
     # Write HTML file
     Write-Host "Writing optimized HTML file..." -ForegroundColor Yellow
@@ -1070,5 +1131,11 @@ Write-Host "• StringBuilder for efficient HTML generation" -ForegroundColor Wh
 Write-Host "• Single-pass directory size calculation" -ForegroundColor White
 Write-Host "• CSV export for forensic reporting of selected directories" -ForegroundColor White
 Write-Host "• Per-MFT storage isolation (no checkbox bleed between analyses)" -ForegroundColor White
+Write-Host "• Smart file filtering excludes irrelevant system/media files from totals" -ForegroundColor White
+
+Write-Host "`nForensic workflow enhancements:" -ForegroundColor Yellow
+Write-Host "• Use CHEAPSKATE-FileExtractor.ps1 to generate extraction scripts" -ForegroundColor White
+Write-Host "• Same blacklist applied to file extraction for vendor cost savings" -ForegroundColor White
+Write-Host "• Multiple output formats: RoboCopy, PowerShell, FileList, JSON" -ForegroundColor White
 
 Write-Host "`nMemory usage should now be <2GB instead of 30GB!" -ForegroundColor Green
